@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <meta name="description" content="" />
+  <meta name="author" content="" />
+  <title>Minh Nguyen | ECE 4160 | Fast Robots</title>
+  <!-- Favicon-->
+  <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
+  <!-- Bootstrap Icons-->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet" />
+  <!-- Google fonts-->
+  <link href="https://fonts.googleapis.com/css?family=Merriweather+Sans:400,700" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css?family=Merriweather:400,300,300italic,400italic,700,700italic"
+    rel="stylesheet" type="text/css" />
+  <!-- SimpleLightbox plugin CSS-->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/SimpleLightbox/2.1.0/simpleLightbox.min.css" rel="stylesheet" />
+  <!-- Core theme CSS (includes Bootstrap)-->
+  <link href="css/styles.css" rel="stylesheet" />
+</head>
+
+<body id="page-top">
+  <!-- Navigation-->
+  <nav class="navbar navbar-expand-lg navbar-light fixed-top py-3" id="mainNav">
+    <div class="container px-4 px-lg-5">
+      <a class="navbar-brand" href="index.html">ECE 4160 | Fast Robots</a>
+      <button class="navbar-toggler navbar-toggler-right" type="button" data-bs-toggle="collapse"
+        data-bs-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false"
+        aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+      <div class="collapse navbar-collapse" id="navbarResponsive">
+        <ul class="navbar-nav ms-auto my-2 my-lg-0">
+          <li class="nav-item"><a class="nav-link" href="index.html">Back</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+  <!-- labs-->
+  <section class="page-section" id="labs">
+    <div class="container px-4 px-lg-5">
+      <h2 class="text-center mt-0">Lab 05: Linear PID control and Linear interpolation</h2>
+      <hr class="divider" />
+      <div class="text-body">
+        <div class="Objective">
+          <h3 class="h3 mb-2">Objective</h3>
+          <p class="text-muted mb-0">The goal of this lab is to start closed loop control. We were tasked with
+            implementing a P, PI, PID, or PD controller to drive the RC car up to a wall and stop 1ft (or 304mm) in
+            front of the wall. We also had to account for overshooting.
+          </p>
+          <hr class="divider divider-light" />
+          <h3 class="h3 mb-2">Prelab</h3>
+          <p class="text-muted mb-0">The goal of the prelab was to setup debugging for the PID controller and have a
+            basic PID controller implemented. For this lab, we had to implement new commands for communication between
+            the computer and the RC car. The first 5 commands were to move the car for future use and the last 5 were to
+            set PID parameters, start the process, and send the data over:
+          </p>
+          <img src="assets/Lab5/new_commands.png" alt="Updated Commands" width=40%>
+          <p class="text-muted mb-0">Then, we updated the python handler to populate arrays with the new sensor data and
+            PID data:
+          </p>
+          <img src="assets/Lab5/handler.png" alt="Updated Handler" width=40%>
+          <p class="text-muted mb-0">The final point of note was that we wanted the car to stop even when a bluetooth
+            connection dropped. We set it up so that the PID process starts by setting the "recording" variable to true.
+            We made it so that after ~5 seconds, the "recording" variable is set to false and the car is stopped.
+          </p>
+          <br>
+          <h3 class="h3 mb-2">PID Control</h3>
+          <p class="text-muted mb-0">The PID controller was implemented in Arudino below. The 3 parameters we set are
+            the
+            proportional gain(Kp), the integral gain(Ki), and the derivative gain(Kd). The positional error (err) is
+            defined as the difference between current ToF reading and the setpoint. Sum_err was used in the integral
+            term and it summed up the proportional error over time. The derivative portion was simply the rate of change
+            between the previous two errors.
+          </p>
+          <img src="assets/Lab5/PID_control.png" alt="PID Control" width=40%>
+          <p class="text-muted mb-0">To find our values of Kp, Ki, and Kd, we started each at 0.0 and slowly increased
+            them. The values were found experimentally based on stability of the car. We found Kp = 0.2, Ki = 0.0, Kd =
+            0.2. This was on the tile in my home, so it may need to be recalibrated at each location. We could develop
+            more robust algorithms to floor material. Ki was 0.0 because any non-zero value made the car uncontrollable
+            even when trying to account for wind up,
+            so this is a PD controller. We controll the car by adding or subtracting the PID value from the min_speed
+            and bound the value based on our motor range as well:
+          </p>
+          <img src="assets/Lab5/control_loop.png" alt="Control Loop" width=40%>
+          <p class="text-muted mb-0">Our motors have an input range of roughly 55 to 255. The TOF sensor on short
+            distance mode has a range of about 0 to 1300mm. If we assume are only creating a P controller, we can create
+            a bound on the proportional gain based on the bound of the error. Since our set point is 304mm, the bounds
+            of our error are -304 to 996mm. Assuming we standardize our P to 0 to 200 (by setting a min_speed input of
+            55 to our motors), we get a proportional gain range of -0.66 to 0.2. Since we are bounding our speed, the
+            gain value ranges aren't too influential, so we chose to pick the values experimentally as stated before.
+          </p>
+          <br>
+          <br>
+          <h3 class="h3 mb-2">Range and Sampling Time</h3>
+          <p class="text-muted mb-0">We conducted our tests with the short mode of the ToF sensor, but the long distance
+            mode should function similarly with a slight decrease in accuracy. We will test this in the future in a
+            larger area. For the sampling time of our control loop, we found that the ToF sensor was the limiting
+            factor.
+          </p>
+          <img src="assets/Lab5/TOF_Sample_rate.png" alt="TOF Sample Rate" width=80%>
+          <img src="assets/Lab5/PID_Sample_Rate.png" alt="PID Sample Rate" width=80%>
+          <p class="text-muted mb-0">We solved this by changing how we use the ToF readings</p>
+          <br>
+          <h3 class="h3 mb-2">Extrapolation</h3>
+          <p class="text-muted mb-0">We started by running the control loop and having the PID control run even when the
+            ToF sensor was not ready. The first solution was to simple continue using the old reading until a new one
+            arrived. This produced major overshooting because the control loop was so much faster than the ToF sensor.
+            It would use old readings even though it has gotten much closer or much further way. The code snippet and
+            new control loop frequency is below:
+          </p>
+          <img src="assets/Lab5/PID_Sample_Rate_Repeat_Data.png" alt="PID repeat Sample Rate" width=80%>
+          <img src="assets/Lab5/Repeat_Data_TOF_code.png" alt="Old Values Code" width=80%>
+          <br>
+          <br>
+          <p class="text-muted mb-0">The second solution was to do extrapolation where we take the last 2 ToF readings
+            to find a slope and use the elapsed time to estimate the current distance. This gave us the expected control
+            behavior at a higher control loop frequency. The code snippet and control loop frequency are below:
+          </p>
+          <img src="assets/Lab5/PID_Sample_Rate_Extrapolation.png" alt="PID Extrapolation Sample Rate" width=80%>
+          <img src="assets/Lab5/Extrapolation_TOF_code.png" alt="Extrapolation Code" width=80%>
+          <h3 class="h3 mb-2">Task Data</h3>
+          <p class="text-muted mb-0">Below are the 3 trials of the RC car completing the task along with graphs of the
+            error and speed vs. time for each. These stunts were recorded once the extrapolation was completed. We see
+            that the bounding of the speed was necessary as it spiked below and above the min and max values. In
+            general, the task was completed with overshooting, but there was little occilation when correcting.
+          </p>
+          <h4 class="h4 mb-2">Trial 1</h4>
+          <iframe width="374" height="665" src="https://www.youtube.com/embed/_BUBWgi_xsg" title="PID Control Trial 1"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen></iframe>
+          <br>
+          <img src="assets/Lab5/Error_T1.png" alt="Error Trial 1" width=45%>
+          <img src="assets/Lab5/Speed_T1.png" alt="Speed Trial 1" width=45%>
+          <br>
+          <h4 class="h4 mb-2">Trial 2</h4>
+          <iframe width="374" height="665" src="https://www.youtube.com/embed/umnPco6vFn4" title="PID Control Trial 2"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen></iframe>
+          <br>
+          <img src="assets/Lab5/Error_T2.png" alt="Error Trial 2" width=45%>
+          <img src="assets/Lab5/Speed_T2.png" alt="Speed Trial 2" width=45%>
+          <br>
+          <h4 class="h4 mb-2">Trial 3</h4>
+          <iframe width="374" height="665" src="https://www.youtube.com/embed/oKENoUAxFfU" title="PID Control Trial 3"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen></iframe>
+          <br>
+          <img src="assets/Lab5/Error_T3.png" alt="Error Trial 3" width=45%>
+          <img src="assets/Lab5/Speed_T3.png" alt="Speed Trial 3" width=45%>
+
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer-->
+  <footer class="bg-light py-5">
+    <div class="container px-4 px-lg-5">
+      <div class="small text-center text-muted">Copyright &copy; 2023 - Company Name</div>
+    </div>
+  </footer>
+  <!-- Bootstrap core JS-->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- SimpleLightbox plugin JS-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/SimpleLightbox/2.1.0/simpleLightbox.min.js"></script>
+  <!-- Core theme JS-->
+  <script src="js/scripts.js"></script>
+  <!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *-->
+  <!-- * *                               SB Forms JS                               * *-->
+  <!-- * * Activate your form at https://startbootstrap.com/solution/contact-forms * *-->
+  <!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *-->
+  <script src="https://cdn.startbootstrap.com/sb-forms-latest.js"></script>
+</body>
+
+</html>
