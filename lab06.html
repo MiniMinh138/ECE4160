@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <meta name="description" content="" />
+  <meta name="author" content="" />
+  <title>Minh Nguyen | ECE 4160 | Fast Robots</title>
+  <!-- Favicon-->
+  <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
+  <!-- Bootstrap Icons-->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet" />
+  <!-- Google fonts-->
+  <link href="https://fonts.googleapis.com/css?family=Merriweather+Sans:400,700" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css?family=Merriweather:400,300,300italic,400italic,700,700italic"
+    rel="stylesheet" type="text/css" />
+  <!-- SimpleLightbox plugin CSS-->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/SimpleLightbox/2.1.0/simpleLightbox.min.css" rel="stylesheet" />
+  <!-- Core theme CSS (includes Bootstrap)-->
+  <link href="css/styles.css" rel="stylesheet" />
+</head>
+
+<body id="page-top">
+  <!-- Navigation-->
+  <nav class="navbar navbar-expand-lg navbar-light fixed-top py-3" id="mainNav">
+    <div class="container px-4 px-lg-5">
+      <a class="navbar-brand" href="index.html">ECE 4160 | Fast Robots</a>
+      <button class="navbar-toggler navbar-toggler-right" type="button" data-bs-toggle="collapse"
+        data-bs-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false"
+        aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+      <div class="collapse navbar-collapse" id="navbarResponsive">
+        <ul class="navbar-nav ms-auto my-2 my-lg-0">
+          <li class="nav-item"><a class="nav-link" href="index.html">Back</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+  <!-- labs-->
+  <section class="page-section" id="labs">
+    <div class="container px-4 px-lg-5">
+      <h2 class="text-center mt-0">Lab 06: Orientation Control</h2>
+      <hr class="divider" />
+      <div class="text-body">
+        <div class="Objective">
+          <h3 class="h3 mb-2">Objective</h3>
+          <p class="text-muted mb-0">The goal of this lab is to implement a variation of PID control on orientation. We
+            will use the IMU to control the yaw of the robot.
+            <hr class="divider divider-light" />
+          <h3 class="h3 mb-2">Prelab</h3>
+          <p class="text-muted mb-0">The goal of the prelab was to setup debugging for the PID controller and setup
+            basic PID control. The same debugging mechanism as lab 5 was used. We simply modify the PID controller to
+            have a set point that was an angle rather than distance. With our debugging system, we can still (same as
+            lab 5) update the set point in real time. We can also process Bluetooth commands while the control loop is
+            running.
+          </p>
+          <br>
+          <h3 class="h3 mb-2">PID Control</h3>
+          <p class="text-muted mb-0">The PID controller was much like the one in lab 5, but the derivative component was
+            modified. To get the yaw angle, we integrate the IMU reading. This suggests that the IMU reading is a rate
+            of change (derivative), itself, so we can directly use that in the derivative component of the PID
+            controller. We also had to create a function to update the yaw angle readings. If a new reading is not
+            available (i.e the clock speed is faster than the IMU refresh), we will use the previous yaw angle in our
+            control.
+          </p>
+          <img src="assets/Lab6/gyro_update.png" alt="Gyro Update" width=40%>
+          <img src="assets/Lab6/PID_control.png" alt="PID Control Loop" width=50%>
+          <p class="text-muted mb-0">To find our values of Kp, Ki, and Kd, we followed similar procedures to lab 5. We
+            found Kp = 0.4, Ki = 0.1, Kd = 0.2. We control the car by adding or subtracting the PID value from the
+            min_speed
+            and bound the value based on our motor range as well:
+          </p>
+          <br>
+          <p class="text-muted mb-0">We updated our motor input range and conversion ratio because for turning, it seems
+            a higher min speed was needed. The min speed went from 55 to 140. The conversion ratio for the right motor
+            speed was also increased from 0.8 to 0.85. This was necessary to keep the car more stationary while
+            changing its orientation.
+          </p>
+          <img src="assets/Lab6/control_loop.png" alt="Control Loop" width=40%>
+          <br>
+          <br>
+          <h3 class="h3 mb-2">Range and Sampling Time</h3>
+          <p class="text-muted mb-0">We tested the sampling rate of just the gyroscope by waiting for new gyroscope
+            readings before continuing PID control vs. repeating gyroscope readings if its not ready. We found that the
+            gyroscope sampling rate did not limit (or marginally limited) the sampling rate of the control loop.
+          </p>
+          <img src="assets/Lab6/gyro_sample_rate.png" alt="Gyro Sample Rate" width=80%>
+          <img src="assets/Lab6/repeat_sampling_rate.png" alt="PID Sample Rate" width=80%>
+          <br>
+          <h3 class="h3 mb-2">Drift</h3>
+          <p class="text-muted mb-0"> An issue with the IMU readings is that it tends to drift. There are no other
+            sensors being used to calculate yaw, so sensor fusion is not an option. For future labs, if we are using
+            orientation control to make turns, we can account for drift by setting the current orientation to 0 degrees
+            and then turning left or right by 90 degrees. This would minimize drift each time we turned.
+          </p>
+          <h3 class="h3 mb-2">Gyroscope Max Rotational Velocity</h3>
+          <p class="text-muted mb-0">The default max rotational velocity(degrees per second) of the gyroscope is 250
+            dps. We changed it to 1000 to hit the upper limits of the values the RC car was outputing.
+          </p>
+          <img src="assets/Lab6/DPS_Raw.png" alt="250 DPS" width=80%>
+          <img src="assets/Lab6/DPS_1000.png" alt="1000 DPS" width=80%>
+          <h3 class="h3 mb-2">Task Data</h3>
+          <p class="text-muted mb-0">We ran 1 trial of having the RC get pushed and correct to the desired orientation.
+            The robot struggled a bit due to the material of the table, but when it was tested on the lab floor, it
+            worked well.
+            We also had a trial with changing the setpoint while the PID controller was active. There was no derivative
+            kick issue.
+          </p>
+          <h4 class="h4 mb-2">Correcting to setpoint</h4>
+          <iframe width="320" height="569" src="https://www.youtube.com/embed/oJin1kfDpBY"
+            title="Correcting to setpoint" frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen></iframe>
+          <br>
+          <img src="assets/Lab6/Angle_T1.png" alt="Angle Trial 1" width=45%>
+          <img src="assets/Lab6/Set_point_T1.png" alt="Set Point Trial 1" width=45%>
+          <img src="assets/Lab6/Speed_T1.png" alt="Speed Trial 1" width=45%>
+          <br>
+          <h4 class="h4 mb-2">Changing setpoint</h4>
+          <iframe width="320" height="569" src="https://www.youtube.com/embed/HBH4eOdqskY" title="Changing setpoint"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen></iframe>
+          <br>
+          <img src="assets/Lab6/Angle_T2.png" alt="Angle Trial 2" width=45%>
+          <img src="assets/Lab6/Set_point_T2.png" alt="Set Point Trial 2" width=45%>
+          <img src="assets/Lab6/Speed_T2.png" alt="Speed Trial 2" width=45%>
+
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer-->
+  <footer class="bg-light py-5">
+    <div class="container px-4 px-lg-5">
+      <div class="small text-center text-muted">Copyright &copy; 2023 - Company Name</div>
+    </div>
+  </footer>
+  <!-- Bootstrap core JS-->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- SimpleLightbox plugin JS-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/SimpleLightbox/2.1.0/simpleLightbox.min.js"></script>
+  <!-- Core theme JS-->
+  <script src="js/scripts.js"></script>
+  <!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *-->
+  <!-- * *                               SB Forms JS                               * *-->
+  <!-- * * Activate your form at https://startbootstrap.com/solution/contact-forms * *-->
+  <!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *-->
+  <script src="https://cdn.startbootstrap.com/sb-forms-latest.js"></script>
+</body>
+
+</html>
