@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <meta name="description" content="" />
+  <meta name="author" content="" />
+  <title>Minh Nguyen | ECE 4160 | Fast Robots</title>
+  <!-- Favicon-->
+  <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
+  <!-- Bootstrap Icons-->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet" />
+  <!-- Google fonts-->
+  <link href="https://fonts.googleapis.com/css?family=Merriweather+Sans:400,700" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css?family=Merriweather:400,300,300italic,400italic,700,700italic"
+    rel="stylesheet" type="text/css" />
+  <!-- SimpleLightbox plugin CSS-->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/SimpleLightbox/2.1.0/simpleLightbox.min.css" rel="stylesheet" />
+  <!-- Core theme CSS (includes Bootstrap)-->
+  <link href="css/styles.css" rel="stylesheet" />
+</head>
+
+<body id="page-top">
+  <!-- Navigation-->
+  <nav class="navbar navbar-expand-lg navbar-light fixed-top py-3" id="mainNav">
+    <div class="container px-4 px-lg-5">
+      <a class="navbar-brand" href="index.html">ECE 4160 | Fast Robots</a>
+      <button class="navbar-toggler navbar-toggler-right" type="button" data-bs-toggle="collapse"
+        data-bs-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false"
+        aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+      <div class="collapse navbar-collapse" id="navbarResponsive">
+        <ul class="navbar-nav ms-auto my-2 my-lg-0">
+          <li class="nav-item"><a class="nav-link" href="index.html">Back</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+  <!-- labs-->
+  <section class="page-section" id="labs">
+    <div class="container px-4 px-lg-5">
+      <h2 class="text-center mt-0">Lab 08: Stunts</h2>
+      <hr class="divider" />
+      <div class="text-body">
+        <div class="Objective">
+          <h3 class="h3 mb-2">Objective</h3>
+          <p class="text-muted mb-0">The goal of this lab is combine what we've learned to have the RC car perform a
+            stunt.
+            <hr class="divider divider-light" />
+          <h3 class="h3 mb-2">Task B: Orientation Control</h3>
+          <p class="text-muted mb-0">The stunt we attempted was to drive at a wall and at ~3ft away, have the robot spin
+            180 degrees and drive back. We used a PID controller to control the orientation and simply had the robot
+            drive forwards based on the ToF readings. The PID gains were the same as lab 6 for the orientation control.
+            Below is the code used to control the robot. We first set the goal angle to be 180 from the current angle.
+            Then we drive forwards until we are 1500mm away, then we initiate the rotation, and then drive forwards.
+            From there, we send a command to stop from the laptop.
+          </p>
+          <pre>
+            <code>
+              "// if the set point has not been updated, update
+              if (y_g == 0.0 && standard_point == false){
+                updateGyro();
+                point = y_g + 180;
+                standard_point == true;
+              }
+              updateGyro();
+              PIDcontrol();
+              ToFSensorGetData(distanceSensor1, distance_1);
+
+              if (turned == true){
+                speed = 200;
+                right_speed = 0.80 * speed;
+                move_forwards();
+              }
+              else {
+                // ToFSensorGetData(distanceSensor1, distance_1);
+                // if far from wall, keep going straight
+                if (((distance_1 > 1500) && (reached == false)) || distance_1 == 0){
+                  speed = 200;
+                  right_speed = 0.80 * speed;
+                  move_forwards();
+                }
+                else { // initiate turn, set bool
+                  // stop_car();
+                  reached = true;
+                  // if err positive, turn right, if negative turn left
+                  if (err > 1){
+                    speed = min_speed + PID;
+                    if (speed > 255){
+                      speed = 255;
+                    }
+                    if (speed < min_speed){
+                      speed = min_speed;
+                    }
+                    right_speed = 0.85 * speed;
+                    turn_right();
+                  }
+                  else if (err < -1){
+                    speed = min_speed - PID;
+                    if (speed > 255){
+                      speed = 255;
+                    }
+                    if (speed < min_speed){
+                      speed = min_speed;
+                    }
+                    right_speed = 0.85 * speed;
+                    turn_left();
+                  }
+                  else { //angle is 180 
+                    turned = true;
+                  }
+
+                }
+              }"
+            </code>
+          </pre>
+          <br>
+          <br>
+          <h3 class="h3 mb-2">Stunt Trials</h3>
+          <p class="text-muted mb-0">We performed 2 trials due to a hardware failure(ToF snapped) while trying to
+            complete the 3rd trial. The stunts were relatively successful, but the turning radius is larger than
+            expected. The videos and requesite graphs are below.
+          </p>
+          <h4 class="h4 mb-2">Trial 1</h4>
+          <iframe width="320" height="569" src="https://www.youtube.com/embed/KvIEDiUbmcA" title="Stunt Trial 1"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+          <br>
+          <img src="assets/Lab8/Trial 1/Distance.png" alt="Distance Trial 1" width=30%>
+          <img src="assets/Lab8/Trial 1/angle.png" alt="Angle Trial 1" width=30%>
+          <img src="assets/Lab8/Trial 1/PWM.png" alt="PWM Trial 1" width=30%>
+          <br>
+          <h4 class="h4 mb-2">Trial 2</h4>
+          <iframe width="320" height="569" src="https://www.youtube.com/embed/OF8jPHTY9Wk" title="Stunt Trial 2"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+          <br>
+          <img src="assets/Lab8/Trial 2/Distance.png" alt="Distance Trial 2" width=30%>
+          <img src="assets/Lab8/Trial 2/angle.png" alt="Angle Trial 2" width=30%>
+          <img src="assets/Lab8/Trial 2/PWM.png" alt="PWM Trial 2" width=30%>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer-->
+  <footer class="bg-light py-5">
+    <div class="container px-4 px-lg-5">
+      <div class="small text-center text-muted">Copyright &copy; 2023 - Company Name</div>
+    </div>
+  </footer>
+  <!-- Bootstrap core JS-->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- SimpleLightbox plugin JS-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/SimpleLightbox/2.1.0/simpleLightbox.min.js"></script>
+  <!-- Core theme JS-->
+  <script src="js/scripts.js"></script>
+  <!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *-->
+  <!-- * *                               SB Forms JS                               * *-->
+  <!-- * * Activate your form at https://startbootstrap.com/solution/contact-forms * *-->
+  <!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *-->
+  <script src="https://cdn.startbootstrap.com/sb-forms-latest.js"></script>
+</body>
+
+</html>
