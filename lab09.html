@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <meta name="description" content="" />
+  <meta name="author" content="" />
+  <title>Minh Nguyen | ECE 4160 | Fast Robots</title>
+  <!-- Favicon-->
+  <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
+  <!-- Bootstrap Icons-->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet" />
+  <!-- Google fonts-->
+  <link href="https://fonts.googleapis.com/css?family=Merriweather+Sans:400,700" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css?family=Merriweather:400,300,300italic,400italic,700,700italic"
+    rel="stylesheet" type="text/css" />
+  <!-- SimpleLightbox plugin CSS-->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/SimpleLightbox/2.1.0/simpleLightbox.min.css" rel="stylesheet" />
+  <!-- Core theme CSS (includes Bootstrap)-->
+  <link href="css/styles.css" rel="stylesheet" />
+</head>
+
+<body id="page-top">
+  <!-- Navigation-->
+  <nav class="navbar navbar-expand-lg navbar-light fixed-top py-3" id="mainNav">
+    <div class="container px-4 px-lg-5">
+      <a class="navbar-brand" href="index.html">ECE 4160 | Fast Robots</a>
+      <button class="navbar-toggler navbar-toggler-right" type="button" data-bs-toggle="collapse"
+        data-bs-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false"
+        aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+      <div class="collapse navbar-collapse" id="navbarResponsive">
+        <ul class="navbar-nav ms-auto my-2 my-lg-0">
+          <li class="nav-item"><a class="nav-link" href="index.html">Back</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+  <!-- labs-->
+  <section class="page-section" id="labs">
+    <div class="container px-4 px-lg-5">
+      <h2 class="text-center mt-0">Lab 09: Mapping</h2>
+      <hr class="divider" />
+      <div class="text-body">
+        <div class="Objective">
+          <h3 class="h3 mb-2">Objective</h3>
+          <p class="text-muted mb-0">The goal of this lab is to map out a static room using the sensors on the robot. We
+            place the robot in 5 marked locations and have it rotate on its axis to gather ToF readings. These readings
+            will be used to generate the map.
+            <hr class="divider divider-light" />
+          <h3 class="h3 mb-2">Control</h3>
+          <p class="text-muted mb-0">I chose to control the robot's rotation using orientation control. From lab 6, I
+            created a PID controller to control the orientation. I use the same PID controller for this lab since I
+            incorporate a command to change the set angle on the fly. This is more robust than open loop control and is
+            simple as the PID controller is already created.
+            <br>
+            <br>
+            I placed tape on the tires of the robot to limit the friction and get the wheels turning more uniformly.
+            This required me recalibrating the conversion factor between the left and right motors. The new conversion
+            factor is: right_speed = 0.9 * left_speed. Below is the code for the PID controller. It is pretty much
+            identical to lab 6, but the error tolerances are only 1 degree.
+          </p>
+          <pre>
+            <code>
+if (recording){
+  updateGyro();
+  ToFSensorGetData(distanceSensor1, distance_1);
+  PIDcontrol();
+
+  // if err positive, turn right, if negative turn left
+  if (err > 1){
+    speed = min_speed + PID;
+    if (speed > 255){
+      speed = 255;
+    }
+    if (speed < min_speed){
+      speed = min_speed;
+    }
+    right_speed = 0.9 * speed;
+    turn_right();
+  }
+  else if (err < -1){
+    speed = min_speed - PID;
+    if (speed > 255){
+      speed = 255;
+    }
+    if (speed < min_speed){
+      speed = min_speed;
+    }
+    right_speed = 0.9 * speed;
+    turn_left();
+  }
+  else{
+    stop_car();
+  }
+  
+  if (recording == false){
+    stop_car();
+  }
+
+  store_data();
+
+  counter++; 
+  if (counter == SIZE){
+    recording = false;
+    stop_car();
+    SERIAL_PORT.print("Done Recording");
+  }
+}
+            </code>
+          </pre>
+          <br>
+          <p class="text-muted mb-0">For the gains, I used the same ones from lab 6 as they seemed to perform well and
+            limit oscillations. The values are: Kp = 0.4, Ki = 0.1, Kd = 0.2. I had the robot turn in 20 degree
+            increments and completing a complete 360 degree turn to come back to where it started. This yielded 19
+            turns. Given our leniency, this means the robot could be off by 19 degrees. This assumes that there is a
+            drift of 1 degree after each turn.</p>
+          <pre>
+            <code>
+# Create a loop to cycle through the set points while taking ToF readings
+# loop speed will be dependent on the size of the arrays/total sampling time
+import time
+
+# start at 0
+ble.send_command(CMD.SET_POINT, "0")
+ble.send_command(CMD.START_PID, "")
+
+# increments of 20 degrees, 19 readings to account for possible drift/not 
+# turning enough due to our 1 degrees of leniency each turn
+for i in range(0, 19):
+    angle = i * 20
+    ble.send_command(CMD.SET_POINT, str(angle))
+    time.sleep(0.6)
+
+time.sleep(1)
+ble.send_command(CMD.STOP_CAR, "")
+            </code>
+          </pre>
+          <p class="text-muted mb-0">To test the drift more accurately, we had the robot read out the gryo Z readings
+            for ~15 seconds to calculate the average drift per second. We did this 3 times and got an average drift of
+            ~0.11 degrees/second. Our control loop runs for 12.4 seconds. Lets round up to 20 seconds to account for
+            connecting to the robot and initialzing the code. This yields a drift of ~2.2 degrees in total. From this,
+            since the error only allows +/- 1 degree, our robot should be off by at most ~3.2 or 4 degrees
+            at the end.</p>
+          <img src="assets/Lab9/drift_1.png" alt="Drift T1" width=50%>
+          <br>
+          <img src="assets/Lab9/drift_2.png" alt="Drift T2" width=50%>
+          <br>
+          <img src="assets/Lab9/drift_3.png" alt="Drift T3" width=50%>
+          <br>
+          <br>
+          <h3 class="h3 mb-2">Read out Distances</h3>
+          <p class="text-muted mb-0">First, I made sure that the robot could spin on its axis. The parametes (such as
+            min speed) were tuned to the lab floor, so it spun in place better in the lab.
+          </p>
+          <iframe width="320" height="569" src="https://www.youtube.com/embed/N7_cYWiJ2vk" title="Rotate About Axis"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+          <p class="text-muted mb-0">
+            After that, I gathered
+            data at the 5 different locations. Below is a graph of 1 of the locations. We first plot the ToF readings
+            raw, then convert to polar coordinates to better visualize the layout. The conversion was straightforward as
+            we directly measured angle and distance, we just needed to convert from degrees to radians. We show 2 trials
+            in the polar map and they are relatively aligned.
+          </p>
+          <img src="assets/Lab9/ROD_dist.png" alt="Dist vs. Time" width=50%>
+          <br>
+          <img src="assets/Lab9/ROD_polar_1.png" alt="Polar T1" width=40%>
+          <img src="assets/Lab9/ROD_polar_2.png" alt="Polar T2" width=40%>
+          <br>
+          <img src="assets/Lab9/ROD_polar_overlay.png" alt="Polar Overlay" width=40%>
+          <h3 class="h3 mb-2">Merge and Plot Readings</h3>
+          <p class="text-muted mb-0">Before we can plot the data into a map, we have to convert from the ToF frame of
+            reference to the inertial frame of reference. We also have to convert from mm to feet. We also have to
+            account for the offset from the gyroscope to the ToF sensor. The ToF sensor is 11.6cm away (or 0.38 feet)
+            from the sensor in the y direction. The formulas and code to convert and plot the data is below:
+          </p>
+          <pre>
+            <code>
+# assume dist = mm, angle = degrees, x_off = ft, y_off = ft
+def combine_plot(dist, angle, x_off, y_off, color, label):
+    x = []
+    y = []
+    dist_ft = np.reshape(np.asarray(dist) * 0.00328084, (len(dist), ))
+    angle_rad = np.reshape(np.deg2rad(angle), (len(angle), ))
+    for i in range(len(dist)):
+
+        x.append((dist_ft[i] * np.cos(angle_rad[i])) + x_off)
+        y.append(((dist_ft[i] + 0.38) * np.sin(angle_rad[i])) + y_off)
+
+    plt.plot(x, y, '.', color=color, label = label)
+            </code>
+          </pre>
+          <p class="text-muted mb-0">When gathering the data, I did not standardize the initial orientation of the car,
+            so I had to manually offset the angles of the readings to line up the map. In the future, a standardized
+            orientation will be implemented. Below are the maps of two trials:</p>
+          <img src="assets/Lab9/merge_t1.png" alt="Merge T1" width=45%>
+          <img src="assets/Lab9/merge_t2.png" alt="Merge T2" width=45%>
+          <br>
+          <h3 class="h3 mb-2">Convert to Line-Based Map</h3>
+          <p class="text-muted mb-0">After outlining the maps, we found the coordinates of the line segments (in the
+            (x_start, y_start) and (x_end, y_end) format) to be:
+          </p>
+          <pre>
+            <code>
+start = [(-0.75, -4.5), (-5, -4.5), (-5, 0.5), (-2, 0.5), (-2, 4.5), (6, 4.5), (6, -4.5), (1, -4.5), (1, -2.75), (-0.75, -2.75), (2.4, 0.75), (2.4, 2.25), (4.9, 2.25), (4.9, 0.75)]
+end = [(-5, -4.5), (-5, 0.5), (-2, 0.5), (-2, 4.5), (6, 4.5), (6, -4.5), (1, -4.5), (1, -2.75), (-0.75, -2.75), (-0.75, -4.5), (2.4, 2.25), (4.9, 2.25), (4.9, 0.75), (2.4, 0.75)]
+            </code>
+          </pre>
+          <p class="text-muted mb-0">Below are the line segments superimposed on both trials of mapping. We see that the
+            estimation is very accurate</p>
+          <img src="assets/Lab9/outline_t1.png" alt="Outline T1" width=45%>
+          <img src="assets/Lab9/outline_t2.png" alt="Outline T2" width=45%>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer-->
+  <footer class="bg-light py-5">
+    <div class="container px-4 px-lg-5">
+      <div class="small text-center text-muted">Copyright &copy; 2023 - Company Name</div>
+    </div>
+  </footer>
+  <!-- Bootstrap core JS-->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- SimpleLightbox plugin JS-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/SimpleLightbox/2.1.0/simpleLightbox.min.js"></script>
+  <!-- Core theme JS-->
+  <script src="js/scripts.js"></script>
+  <!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *-->
+  <!-- * *                               SB Forms JS                               * *-->
+  <!-- * * Activate your form at https://startbootstrap.com/solution/contact-forms * *-->
+  <!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *-->
+  <script src="https://cdn.startbootstrap.com/sb-forms-latest.js"></script>
+</body>
+
+</html>
