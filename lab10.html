@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <meta name="description" content="" />
+  <meta name="author" content="" />
+  <title>Minh Nguyen | ECE 4160 | Fast Robots</title>
+  <!-- Favicon-->
+  <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
+  <!-- Bootstrap Icons-->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet" />
+  <!-- Google fonts-->
+  <link href="https://fonts.googleapis.com/css?family=Merriweather+Sans:400,700" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css?family=Merriweather:400,300,300italic,400italic,700,700italic"
+    rel="stylesheet" type="text/css" />
+  <!-- SimpleLightbox plugin CSS-->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/SimpleLightbox/2.1.0/simpleLightbox.min.css" rel="stylesheet" />
+  <!-- Core theme CSS (includes Bootstrap)-->
+  <link href="css/styles.css" rel="stylesheet" />
+</head>
+
+<body id="page-top">
+  <!-- Navigation-->
+  <nav class="navbar navbar-expand-lg navbar-light fixed-top py-3" id="mainNav">
+    <div class="container px-4 px-lg-5">
+      <a class="navbar-brand" href="index.html">ECE 4160 | Fast Robots</a>
+      <button class="navbar-toggler navbar-toggler-right" type="button" data-bs-toggle="collapse"
+        data-bs-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false"
+        aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+      <div class="collapse navbar-collapse" id="navbarResponsive">
+        <ul class="navbar-nav ms-auto my-2 my-lg-0">
+          <li class="nav-item"><a class="nav-link" href="index.html">Back</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+  <!-- labs-->
+  <section class="page-section" id="labs">
+    <div class="container px-4 px-lg-5">
+      <h2 class="text-center mt-0">Lab 10: Grid Localization using Bayes Filter</h2>
+      <hr class="divider" />
+      <div class="text-body">
+        <div class="Objective">
+          <h3 class="h3 mb-2">Objective</h3>
+          <p class="text-muted mb-0">The goal of this lab is to implement grid localization with a Bayes Filter control
+            algorithm in a simulator.
+            <hr class="divider divider-light" />
+          <h3 class="h3 mb-2">Prelab</h3>
+          <p class="text-muted mb-0">Robot localization is the process of determining where a mobile robot is located
+            with respect to its environment. Localization can be continuous, but that would require too much
+            computational power. We discretize the space to simplify computation complexity. We have 3 degrees of
+            freedom: x, y, and theta.
+            <br>
+            [-1.6764, +1.9812) meters or [-5.5, 6.5) feet in the x direction,
+            <br>
+            [-1.3716, +1.3716) meters or [-4.5, +4.5) feet in the y direction,
+            <br>
+            [-180, +180) degrees along the theta axis.
+            <br>
+            <br>
+            We discretize them into a grid, with each grid square is 0.3048 m and 20 degrees. This means the number of
+            cells in each of the x, y, theta axes are (12, 9, 18).
+            <br>
+            <br>
+            For the robot localization, there are 2 components: predicting position based on control input and the
+            correcting the prediction based on sensor readings. The result of this is a probability estimate for each
+            grid to see which position is the most likely.
+          </p>
+          <br>
+          <img src="assets/Lab10/bayes.png" alt="Bayes Algo" width=45%>
+          <br>
+          <br>
+          <h3 class="h3 mb-2">Implementation</h3>
+          <p class="text-muted mb-0">The first function is to compute the transition from one state to another. This can
+            be defined by 2 rotations and a translation. We use the current and previous position readings to calculate
+            the values using trigonometry.
+          </p>
+          <pre>
+            <code>
+x_diff = cur_pose[0] - prev_pose[0]
+y_diff = cur_pose[1] - prev_pose[1]
+angle_rad = np.arctan2(y_diff, x_diff)
+angle_deg = np.rad2deg(angle_rad)
+
+delta_rot_1 = mapper.normalize_angle(angle_deg - prev_pose[2])
+delta_rot_2 = mapper.normalize_angle(cur_pose[2] - angle_deg)
+
+delta_trans = np.sqrt((y_diff)**2 + (x_diff)**2)
+
+return delta_rot_1, delta_trans, delta_rot_2
+            </code>
+          </pre>
+          <p class="text-muted mb-0">The second function is to model the gaussian distribution of the probabilities of
+            each motion from the robot (rot1, translation, rot2).
+          </p>
+          <pre>
+            <code>
+actual_u = compute_control(cur_pose, prev_pose)
+
+prob_rot1 = loc.gaussian(u[0], actual_u[0], loc.odom_rot_sigma)
+prob_trans = loc.gaussian(u[1], actual_u[1], loc.odom_trans_sigma)
+prob_rot2 = loc.gaussian(u[2], actual_u[2], loc.odom_rot_sigma)
+
+prob = prob_rot1 * prob_trans * prob_rot2
+
+return prob
+            </code>
+          </pre>
+          <br>
+          <p class="text-muted mb-0">The third function is to update the beliefs and complete the prediction step. We
+            loop through all the grids and check for our probability threshold. If the cell has a high enough
+            probability, we update the beliefs.
+          </p>
+          <pre>
+            <code>
+u = compute_control(cur_odom, prev_odom)
+
+for x1 in range(mapper.MAX_CELLS_X):
+    for y1 in range(mapper.MAX_CELLS_Y):
+        for a1 in range(mapper.MAX_CELLS_A):
+            bel = loc.bel[x1][y1][a1]
+            if bel >= 0.0001:
+                for x2 in range(mapper.MAX_CELLS_X):
+                    for y2 in range(mapper.MAX_CELLS_Y):
+                        for a2 in range(mapper.MAX_CELLS_A):
+                            prob = odom_motion_model(mapper.from_map(x2, y2, a2), mapper.from_map(x1, y1, a1), u)
+                            loc.bel_bar[x2][y2][a2] += (prob * bel)
+            </code>
+          </pre>
+          <p class="text-muted mb-0">The fourth function is to update the sensor model with the probabilities in a
+            gaussian distribution.</p>
+          <br>
+          <br>
+          <pre>
+            <code>
+prob_array = np.zeros(mapper.OBS_PER_CELL)
+
+for i in range(mapper.OBS_PER_CELL):
+    prob_array[i] = loc.gaussian(loc.obs_range_data[i], obs[i], loc.sensor_sigma)
+
+return prob_array
+            </code>
+          </pre>
+          <p class="text-muted mb-0">The final function is to update the model with the sensor readings.
+          </p>
+          <pre>
+            <code>
+for x in range(mapper.MAX_CELLS_X):
+for y in range(mapper.MAX_CELLS_Y):
+    for a in range(mapper.MAX_CELLS_A):
+
+        prob_z = np.prod(sensor_model(mapper.get_views(x, y, a)))
+        loc.bel[x][y][a] = prob_z * loc.bel_bar[x][y][a]
+
+loc.bel = loc.bel / np.sum(loc.bel)
+            </code>
+          </pre>
+
+          <h3 class="h3 mb-2">Testing the Simulation</h3>
+          <p class="text-muted mb-0">The simulation shows the 3 different plots. The green line represents the ground
+            truth, which is the actual path of the robot. The red line represents the odometry data. The blue line is
+            the bayes filter and the robot's belief of its position. Below are 3 trials of the runs.</p>
+          <img src="assets/Lab10/T1.png" alt="Trial 1" width=30%>
+          <img src="assets/Lab10/T2.png" alt="Trial 2" width=30%>
+          <img src="assets/Lab10/T3.png" alt="Trial 3" width=30%>
+          <iframe width="855" height="481" src="https://www.youtube.com/embed/SVg1Pm25FjA" title="Lab10" frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer-->
+  <footer class="bg-light py-5">
+    <div class="container px-4 px-lg-5">
+      <div class="small text-center text-muted">Copyright &copy; 2023 - Company Name</div>
+    </div>
+  </footer>
+  <!-- Bootstrap core JS-->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- SimpleLightbox plugin JS-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/SimpleLightbox/2.1.0/simpleLightbox.min.js"></script>
+  <!-- Core theme JS-->
+  <script src="js/scripts.js"></script>
+  <!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *-->
+  <!-- * *                               SB Forms JS                               * *-->
+  <!-- * * Activate your form at https://startbootstrap.com/solution/contact-forms * *-->
+  <!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *-->
+  <script src="https://cdn.startbootstrap.com/sb-forms-latest.js"></script>
+</body>
+
+</html>
