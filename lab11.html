@@ -45,51 +45,58 @@
         <div class="Objective">
           <h3 class="h3 mb-2">Objective</h3>
           <p class="text-muted mb-0">The goal of this lab is to implement the Bayes Filter on the real robot and have it
-            do grid localization. We implement only the update step based on the 360 degree scans due to the robot's motion
+            do grid localization. We implement only the update step based on the 360 degree scans due to the robot's
+            motion
             being so noisy that it doesn't help to do the prediction step.
           </p>
           <hr class="divider divider-light" />
           <h3 class="h3 mb-2">Prelab</h3>
-          <p class="text-muted mb-0">For this lab, we are given the optimized code to implement the Bayes Filter on the virtual robot.
-            We simply need to modify the code to work with the real robot. We mainly need to gather the 360 degree rotation and ToF data
-            and pipeline it into the Bayes Filter code. As a sanity test, we ran the simulation code with the optimized Bayes Filter to
+          <p class="text-muted mb-0">For this lab, we are given the optimized code to implement the Bayes Filter on the
+            virtual robot.
+            We simply need to modify the code to work with the real robot. We mainly need to gather the 360 degree
+            rotation and ToF data
+            and pipeline it into the Bayes Filter code. As a sanity test, we ran the simulation code with the optimized
+            Bayes Filter to
             ensure that it did in fact work in simulation.
           </p>
           <br>
-          <img src="assets/Lab11/" alt="Simulation Run" width=45%>
+          <img src="assets/Lab11/sim_data.png" alt="Simulation Run" width=45%>
           <br>
           <br>
           <h3 class="h3 mb-2">Implementation on Real Robot</h3>
-          <p class="text-muted mb-0">The implementation was quite straightforward as my code from Lab 9 had the 360 degree rotation
-            completed in 20 degree increments. I copied over the required base code and added the bluetooth code from lab 9. I did
-            modify both the arduino and python code slightly to take only 1 reading per rotation. In lab 9, I took readings continuously,
-            so there was much more than 18 readings. The general loop now is that the robot rotates, waits a certain delay, takes a reading,
+          <p class="text-muted mb-0">The implementation was quite straightforward as my code from Lab 9 had the 360
+            degree rotation
+            completed in 20 degree increments. I copied over the required base code and added the bluetooth code from
+            lab 9. I did
+            modify both the arduino and python code slightly to take only 1 reading per rotation. In lab 9, I took
+            readings continuously,
+            so there was much more than 18 readings. The general loop now is that the robot rotates, waits a certain
+            delay, takes a reading,
             waits another delay, then rotates again. This made it so that there were 18 distinct readings.
           </p>
           <br>
-          <img src="assets/Lab11/" alt="Python Code" width="40%">
-          <img src="assets/Lab11/" alt="Arduino Code" width="40%">
+          <img src="assets/Lab11/python.png" alt="Python Code" width="40%">
+          <img src="assets/Lab11/arduino.png" alt="Arduino Code" width="40%">
           <br>
           <h3 class="h3 mb-2">Results on Real Localization</h3>
           <p class="text-muted mb-0">
-            Below are the visualized localization at the 4 keypoints. We completed 2 trials at each marked location for consistency sake.
+            Below are the visualized localization at the 4 keypoints. In general, all localization was correct, but it
+            took a few trials as I have not standardized the 0 degree angle as the same orientation every trial. The
+            scale is in meters rather than feet. I omit a video of the data collection as it is the same as lab 9 where
+            the robot spins in a circle and is uninteresting.
           </p>
           <h4 class="h4 mb-2">(-3, -2)</h4>
           <p class="text-muted mb-0"></p>
-          <img src="assets/Lab11/" alt="Trial 1" width="40%">
-          <img src="assets/Lab11/" alt="Trial 2" width="40%">
+          <img src="assets/Lab11/(-0.914, -0.610); (-3, -2).png" alt="Trial 1" width="80%">
           <h4 class="h4 mb-2">(0, 3)</h4>
           <p class="text-muted mb-0"></p>
-          <img src="assets/Lab11/" alt="Trial 1" width="40%">
-          <img src="assets/Lab11/" alt="Trial 2" width="40%">
+          <img src="assets/Lab11/(0.000, 0.914); (0, 3).png" alt="Trial 1" width="80%">
           <h4 class="h4 mb-2">(5, -3)</h4>
           <p class="text-muted mb-0"></p>
-          <img src="assets/Lab11/" alt="Trial 1" width="40%">
-          <img src="assets/Lab11/" alt="Trial 2" width="40%">
+          <img src="assets/Lab11/(1.524, -0.914); (5, -3).png" alt="Trial 1" width="80%">
           <h4 class="h4 mb-2">(5, 3)</h4>
           <p class="text-muted mb-0"></p>
-          <img src="assets/Lab11/" alt="Trial 1" width="40%">
-          <img src="assets/Lab11/" alt="Trial 2" width="40%">
+          <img src="assets/Lab11/(1.524, 0.914); (5, 3).png" alt="Trial 1" width="80%">
         </div>
       </div>
     </div>
